@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sherlock Web 2.0 | OSINT Footprint Reconnaissance</title>
+    <meta name="description" content="Antarmuka web resmi untuk Sherlock OSINT. Cek username di platform spesifik atau scan ratusan situs sekaligus secara real-time.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f59e0b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <a href="#main-username-input" class="skip-link">Lewati ke form pencarian</a>
+
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+        <div class="container header-inner">
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        <circle cx="11" cy="11" r="3"></circle>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <div class="brand-title">Sherlock <span>Web 2.0</span></div>
+                    <div class="brand-subtitle">Official Sherlock OSINT Engine</div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <!-- Network Online Status Indicator -->
+                <div class="network-badge status-checking" id="network-badge" title="Status koneksi internet server">
+                    <span class="status-dot"></span>
+                    <span class="status-label" id="network-text">Cek Jaringan...</span>
+                </div>
+
+                <div class="db-badge" title="Total basis data platform Sherlock">
+                    <span class="db-icon">🌐</span>
+                    <span id="header-db-count">481 Platform</span>
+                </div>
+
+                <button class="theme-toggle" id="theme-toggle" aria-label="Ganti mode tampilan" title="Mode Gelap / Terang">
+                    <svg class="sun-icon" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="moon-icon" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Network Warning Banner (Shown if server cannot reach internet) -->
+    <div id="network-warning" class="network-warning-banner hidden">
+        <div class="container warning-inner">
+            <span class="warning-icon">⚠️</span>
+            <div class="warning-text">
+                <strong>Peringatan Akses Internet:</strong> Server tidak dapat menghubungi internet ke platform luar.
+                Jika Anda menjalankan server di terminal Mac, pastikan koneksi WiFi/Internet aktif.
+            </div>
+            <button type="button" id="recheck-net-btn" class="btn btn-sm btn-secondary">Cek Ulang</button>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Search Control Center -->
+            <section class="search-section">
+                <div class="search-card">
+                    <!-- Mode Switcher Tabs -->
+                    <div class="mode-tabs" role="tablist">
+                        <button type="button" class="mode-tab active" id="tab-mode-single" role="tab" aria-selected="true">
+                            <span class="tab-icon">🎯</span>
+                            <span class="tab-title">Cek Satu Platform (Kilat)</span>
+                            <span class="tab-tag">Langsung Ketemu</span>
+                        </button>
+                        <button type="button" class="mode-tab" id="tab-mode-multi" role="tab" aria-selected="false">
+                            <span class="tab-icon">⚡</span>
+                            <span class="tab-title">Scan Banyak Platform (Massal)</span>
+                            <span class="tab-tag">Live Stream</span>
+                        </button>
+                    </div>
+
+                    <!-- Mode 1: Single Platform Quick Search Form -->
+                    <div id="panel-mode-single" class="mode-panel">
+                        <div class="panel-intro">
+                            <h2>Cek Akun di Platform Pilihan</h2>
+                            <p>Periksa langsung keberadaan akun di satu platform tertentu dalam <strong>1 detik</strong> (persis seperti perintah <code>sherlock --site &lt;platform&gt; &lt;user&gt;</code>).</p>
+                        </div>
+
+                        <!-- Quick Platform Chips -->
+                        <div class="platform-chips-wrapper">
+                            <label class="section-label">Pilih Platform Target:</label>
+                            <div class="platform-quick-chips" id="quick-platforms">
+                                <button type="button" class="p-chip active" data-site="GitHub">GitHub</button>
+                                <button type="button" class="p-chip" data-site="Instagram">Instagram</button>
+                                <button type="button" class="p-chip" data-site="TikTok">TikTok</button>
+                                <button type="button" class="p-chip" data-site="Twitter">Twitter / X</button>
+                                <button type="button" class="p-chip" data-site="Telegram">Telegram</button>
+                                <button type="button" class="p-chip" data-site="Reddit">Reddit</button>
+                                <button type="button" class="p-chip" data-site="YouTube">YouTube</button>
+                                <button type="button" class="p-chip" data-site="Spotify">Spotify</button>
+                                <button type="button" class="p-chip" data-site="Steam Community (User)">Steam</button>
+                                <button type="button" class="p-chip" data-site="Pinterest">Pinterest</button>
+                                <button type="button" class="p-chip" data-site="Chess">Chess.com</button>
+                                <button type="button" class="p-chip" data-site="SoundCloud">SoundCloud</button>
+                            </div>
+
+                            <!-- Custom Platform Select / Search -->
+                            <div class="custom-platform-row">
+                                <span class="custom-label">Atau cari platform lain dari 481 database:</span>
+                                <div class="platform-select-box">
+                                    <input type="text" id="custom-platform-input" list="all-platforms-datalist" placeholder="Ketik nama platform (contoh: GitLab, Medium, Roblox)...">
+                                    <datalist id="all-platforms-datalist"></datalist>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Input Single -->
+                        <form id="single-search-form" class="search-form" autocomplete="off">
+                            <div class="input-wrapper">
+                                <span class="input-prefix">@</span>
+                                <input 
+                                    type="text" 
+                                    id="single-username-input" 
+                                    class="search-input" 
+                                    placeholder="Masukkan username target (contoh: jaidav, torvalds, alif)..." 
+                                    required
+                                    spellcheck="false"
+                                >
+                            </div>
+
+                            <button type="submit" id="single-submit-btn" class="btn btn-primary">
+                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.2" fill="none">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <span id="single-btn-text">Cek Sekarang (Kilat)</span>
+                            </button>
+                        </form>
+
+                        <!-- Single Result Spotlight (Visible when checked) -->
+                        <div id="single-result-spotlight" class="single-result-spotlight hidden">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Mode 2: Multi-Platform Mass Scan Form -->
+                    <div id="panel-mode-multi" class="mode-panel hidden">
+                        <div class="panel-intro">
+                            <h2>Pemindaian Massal Real-Time</h2>
+                            <p>Lacak target di puluhan hingga ratusan platform sekaligus dengan indikator progres streaming langsung.</p>
+                        </div>
+
+                        <!-- Category Selector -->
+                        <div class="category-group">
+                            <label class="section-label">Pilih Cakupan Pemindaian:</label>
+                            <div class="category-chips" id="category-chips">
+                                <button type="button" class="chip active" data-category="popular">
+                                    <span class="chip-icon">⚡</span>
+                                    <span class="chip-name">Populer (Top 35)</span>
+                                    <span class="chip-badge">35</span>
+                                </button>
+                                <button type="button" class="chip" data-category="all">
+                                    <span class="chip-icon">🌐</span>
+                                    <span class="chip-name">Semua Situs</span>
+                                    <span class="chip-badge">481</span>
+                                </button>
+                                <button type="button" class="chip" data-category="dev">
+                                    <span class="chip-icon">💻</span>
+                                    <span class="chip-name">Developer</span>
+                                    <span class="chip-badge">14</span>
+                                </button>
+                                <button type="button" class="chip" data-category="social">
+                                    <span class="chip-icon">💬</span>
+                                    <span class="chip-name">Sosial Media</span>
+                                    <span class="chip-badge">12</span>
+                                </button>
+                                <button type="button" class="chip" data-category="creative">
+                                    <span class="chip-icon">🎨</span>
+                                    <span class="chip-name">Kreatif</span>
+                                    <span class="chip-badge">12</span>
+                                </button>
+                                <button type="button" class="chip" data-category="gaming">
+                                    <span class="chip-icon">🎮</span>
+                                    <span class="chip-name">Gaming</span>
+                                    <span class="chip-badge">5</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Form Input Multi -->
+                        <form id="multi-search-form" class="search-form" autocomplete="off">
+                            <div class="input-wrapper">
+                                <span class="input-prefix">@</span>
+                                <input 
+                                    type="text" 
+                                    id="multi-username-input" 
+                                    class="search-input" 
+                                    placeholder="Masukkan username target..." 
+                                    required
+                                    spellcheck="false"
+                                >
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" id="multi-submit-btn" class="btn btn-primary">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.2" fill="none">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                    <span id="multi-btn-text">Mulai Scan Massal</span>
+                                </button>
+
+                                <button type="button" id="cancel-scan-btn" class="btn btn-danger hidden">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                                        <rect x="6" y="6" width="12" height="12"></rect>
+                                    </svg>
+                                    <span>Hentikan</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Quick Suggestions -->
+                    <div class="quick-examples">
+                        <span class="examples-label">Coba cepat:</span>
+                        <div class="example-chips">
+                            <button type="button" class="example-chip" data-user="jaidav">jaidav</button>
+                            <button type="button" class="example-chip" data-user="torvalds">torvalds</button>
+                            <button type="button" class="example-chip" data-user="alif">alif</button>
+                            <button type="button" class="example-chip" data-user="nasa">nasa</button>
+                            <button type="button" class="example-chip" data-user="github">github</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Multi Telemetry Section (Visible during/after multi-scan) -->
+            <section id="telemetry-section" class="telemetry-section hidden">
+                <div class="progress-container">
+                    <div class="progress-info">
+                        <div class="progress-label">
+                            <span class="scan-pulse"></span>
+                            <span id="scan-target-display">Memindai target: <strong>@username</strong></span>
+                        </div>
+                        <div class="progress-stats">
+                            <span id="progress-percent">0%</span>
+                            <span class="progress-count">(<span id="scanned-num">0</span> / <span id="total-num">0</span> platform)</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar-track">
+                        <div class="progress-bar-fill" id="progress-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card stat-claimed">
+                        <div class="stat-header">
+                            <span class="stat-label">Akun Ditemukan</span>
+                            <span class="stat-icon">✓</span>
+                        </div>
+                        <div class="stat-value" id="stat-claimed-val">0</div>
+                        <div class="stat-desc">Profil publik aktif</div>
+                    </div>
+
+                    <div class="stat-card stat-available">
+                        <div class="stat-header">
+                            <span class="stat-label">Tidak Ditemukan</span>
+                            <span class="stat-icon">✕</span>
+                        </div>
+                        <div class="stat-value" id="stat-available-val">0</div>
+                        <div class="stat-desc">Belum terdaftar</div>
+                    </div>
+
+                    <div class="stat-card stat-time">
+                        <div class="stat-header">
+                            <span class="stat-label">Waktu Berlalu</span>
+                            <span class="stat-icon">⏱</span>
+                        </div>
+                        <div class="stat-value"><span id="stat-time-val">0.0</span><small>d</small></div>
+                        <div class="stat-desc">Kecepatan: <span id="stat-speed-val">0</span> req/dtk</div>
+                    </div>
+
+                    <div class="stat-card stat-other">
+                        <div class="stat-header">
+                            <span class="stat-label">Terproteksi / Error</span>
+                            <span class="stat-icon">🛡</span>
+                        </div>
+                        <div class="stat-value" id="stat-other-val">0</div>
+                        <div class="stat-desc">WAF / Timeout</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Multi Results Section -->
+            <section id="results-section" class="results-section hidden">
+                <div class="results-toolbar">
+                    <div class="toolbar-left">
+                        <div class="filter-tabs" role="tablist">
+                            <button type="button" class="filter-tab active" data-filter="all">Semua (<span id="count-filter-all">0</span>)</button>
+                            <button type="button" class="filter-tab tab-claimed" data-filter="claimed">Ditemukan (<span id="count-filter-claimed">0</span>)</button>
+                            <button type="button" class="filter-tab tab-available" data-filter="available">Tidak Ada (<span id="count-filter-available">0</span>)</button>
+                            <button type="button" class="filter-tab tab-other" data-filter="other">WAF/Error (<span id="count-filter-other">0</span>)</button>
+                        </div>
+                    </div>
+
+                    <div class="toolbar-right">
+                        <div class="filter-search-box">
+                            <input type="text" id="filter-search-input" placeholder="Cari nama platform...">
+                        </div>
+
+                        <div class="view-switch">
+                            <button type="button" class="view-btn active" id="view-cards-btn" title="Tampilan Kartu">
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <rect x="3" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="14" width="7" height="7"></rect>
+                                    <rect x="3" y="14" width="7" height="7"></rect>
+                                </svg>
+                            </button>
+                            <button type="button" class="view-btn" id="view-table-btn" title="Tampilan Tabel">
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="export-dropdown">
+                            <button type="button" class="btn btn-secondary" id="export-toggle-btn">
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                <span>Ekspor</span>
+                            </button>
+                            <div class="dropdown-menu hidden" id="export-menu">
+                                <button type="button" class="dropdown-item" id="export-copy-links">📋 Salin Semua Link</button>
+                                <button type="button" class="dropdown-item" id="export-json">📄 Unduh JSON</button>
+                                <button type="button" class="dropdown-item" id="export-csv">📊 Unduh CSV</button>
+                                <button type="button" class="dropdown-item" id="export-txt">📝 Unduh TXT</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="results-container" id="cards-container"></div>
+
+                <div class="table-container hidden" id="table-container">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Platform</th>
+                                <th>Status</th>
+                                <th>Latency</th>
+                                <th>Tautan Profil</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="empty-filter-state hidden" id="empty-filter-msg">
+                    <p>Tidak ada hasil yang sesuai dengan kriteria filter saat ini.</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="container footer-inner">
+            <div class="footer-left">
+                <strong>Sherlock Web 2.0</strong> • Engine Powered by <a href="https://github.com/sherlock-project/sherlock" target="_blank" rel="noopener">Sherlock Project Official</a>
+            </div>
+            <div class="footer-right">
+                Dirombak untuk kemudahan investigasi instan • JNext AI
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
